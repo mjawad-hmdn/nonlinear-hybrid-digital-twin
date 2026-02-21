@@ -136,7 +136,7 @@ t_final = st.sidebar.number_input(
     value=5.0,
     step=0.1
 )
-
+probabilistic_mode = st.sidebar.checkbox("Enable Uncertainty (Monte Carlo)", value=True)
 if st.button("Run Simulation"):
 
     # ===== Physics Run =====
@@ -146,13 +146,29 @@ if st.button("Run Simulation"):
 
     # ===== Hybrid Monte Carlo Run =====
     start_hyb = time.time()
-    time_hyb, mean_traj, std_traj, samples = hybrid_solver_mc(
-        m, k, c, alpha, u0, v0, dt, t_final, n_samples=30
+    # ===== Hybrid Run =====
+    start_hyb = time.time()
+
+    if probabilistic_mode:
+        time_hyb, mean_traj, std_traj, samples = hybrid_solver_mc(
+            m, k, c, alpha, u0, v0, dt, t_final, n_samples=15
+        )
+        u_hyb = mean_traj
+    else:
+        time_hyb, u_hyb = hybrid_solver(
+            m, k, c, alpha, u0, v0, dt, t_final
+        )
+
+    hyb_time = time.time() - start_hyb
+
     )
     hyb_time = time.time() - start_hyb
 
     # ===== RMSE (mean vs physics) =====
-    rmse = np.sqrt(np.mean((u_phys - mean_traj)**2))
+    if probabilistic_mode:
+        rmse = np.sqrt(np.mean((u_phys - mean_traj) ** 2))
+    else:
+        rmse = np.sqrt(np.mean((u_phys - u_hyb) ** 2))
 
     # ===== Plot =====
     fig = go.Figure()
@@ -165,25 +181,34 @@ if st.button("Run Simulation"):
         name='Physics'
     ))
 
-    # Hybrid Mean
-    fig.add_trace(go.Scatter(
-        x=time_hyb,
-        y=mean_traj,
-        mode='lines',
-        name='Hybrid Mean',
-        line=dict(color='red')
-    ))
+    if probabilistic_mode:
+        # Mean
+        fig.add_trace(go.Scatter(
+            x=time_hyb,
+            y=mean_traj,
+            mode='lines',
+            name='Hybrid Mean',
+            line=dict(color='red')
+        ))
 
-    # Uncertainty band
-    fig.add_trace(go.Scatter(
-        x=np.concatenate([time_hyb, time_hyb[::-1]]),
-        y=np.concatenate([mean_traj - std_traj,
-                          (mean_traj + std_traj)[::-1]]),
-        fill='toself',
-        fillcolor='rgba(255,0,0,0.2)',
-        line=dict(color='rgba(255,255,255,0)'),
-        name='±1σ'
-    ))
+        # Uncertainty band
+        fig.add_trace(go.Scatter(
+            x=np.concatenate([time_hyb, time_hyb[::-1]]),
+            y=np.concatenate([mean_traj - std_traj,
+                              (mean_traj + std_traj)[::-1]]),
+            fill='toself',
+            fillcolor='rgba(255,0,0,0.2)',
+            line=dict(color='rgba(255,255,255,0)'),
+            name='±1σ'
+        ))
+    else:
+        fig.add_trace(go.Scatter(
+            x=time_hyb,
+            y=u_hyb,
+            mode='lines',
+            name='Hybrid',
+            line=dict(dash='dash')
+        ))
 
     # Sample trajectories (show 5)
     for s in range(5):
