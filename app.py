@@ -57,7 +57,6 @@ alpha = st.sidebar.number_input("Nonlinear Coefficient (alpha)", value=0.0)
 u0 = st.sidebar.number_input("Initial Displacement", value=0.2)
 v0 = st.sidebar.number_input("Initial Velocity", value=0.0)
 
-dt = st.sidebar.number_input("Time Step (dt)", value=0.001, format="%.6f")
 t_final = st.sidebar.number_input("Simulation Time", value=5.0)
 
 # =========================
@@ -124,16 +123,11 @@ if st.button("Run Simulation"):
     # ---------------------------------
     # Automatic Stability Handling
     # ---------------------------------
+    # ---------------------------------
+    # Automatic Stable Time Step
+    # ---------------------------------
     omega_est = np.sqrt(k / m)
-    dt_critical = 1.0 / omega_est
-    dt_safe = 0.5 * dt_critical  # safety factor
-
-    if dt > dt_safe:
-        st.info(
-            f"ℹ️ Time step automatically reduced for stability.\n"
-            f"Original dt: {dt:.5f} → Adjusted dt: {dt_safe:.5f}"
-        )
-        dt = dt_safe
+    dt = 1.0 / (20 * omega_est)  # 20 steps per oscillation
 
     # ---------------------------------
     # Run Physics Solver
