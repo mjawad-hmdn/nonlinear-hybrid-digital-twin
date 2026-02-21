@@ -10,7 +10,8 @@ import time
 # PAGE CONFIG
 # =========================
 st.set_page_config(page_title="Nonlinear Hybrid Digital Twin", layout="wide")
-st.title("Nonlinear Hybrid Digital Twin Platform")
+st.title("1-DOF Nonlinear Hybrid Oscillation Simulation")
+st.markdown("Physics-based solver vs Machine Learning Hybrid model")
 
 # =========================
 # MODEL ARCHITECTURE
