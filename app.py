@@ -115,27 +115,67 @@ def hybrid_solver(m, k, c, alpha, u0, v0, dt, t_final):
 # RUN SIMULATION
 # =========================
 
+# ===============================
+# Run Simulation
+# ===============================
+
 if st.button("Run Simulation"):
 
+    # ---------------------------------
+    # Automatic Stability Handling
+    # ---------------------------------
+    omega_est = np.sqrt(k / m)
+    dt_critical = 1.0 / omega_est
+    dt_safe = 0.5 * dt_critical  # safety factor
+
+    if dt > dt_safe:
+        st.info(
+            f"ℹ️ Time step automatically reduced for stability.\n"
+            f"Original dt: {dt:.5f} → Adjusted dt: {dt_safe:.5f}"
+        )
+        dt = dt_safe
+
+    # ---------------------------------
+    # Run Physics Solver
+    # ---------------------------------
     start_phys = time.time()
     t_phys, u_phys = physics_solver(m, k, c, alpha, u0, v0, dt, t_final)
-    phys_time = time.time() - start_phys
+    physics_time = time.time() - start_phys
 
+    # ---------------------------------
+    # Run Hybrid Solver
+    # ---------------------------------
     start_hyb = time.time()
     t_hyb, u_hyb = hybrid_solver(m, k, c, alpha, u0, v0, dt, t_final)
-    hyb_time = time.time() - start_hyb
+    hybrid_time = time.time() - start_hyb
 
-    rmse = np.sqrt(np.mean((u_phys - u_hyb)**2))
+    # ---------------------------------
+    # Compute Metrics
+    # ---------------------------------
+    rmse = np.sqrt(np.mean((u_phys - u_hyb) ** 2))
+    speed_ratio = physics_time / hybrid_time if hybrid_time > 0 else np.nan
 
+    # ---------------------------------
+    # Plot Results
+    # ---------------------------------
     fig = go.Figure()
+    fig.add_trace(go.Scatter(x=t_phys, y=u_phys, name="Physics"))
+    fig.add_trace(go.Scatter(x=t_hyb, y=u_hyb, name="Hybrid"))
 
-    fig.add_trace(go.Scatter(x=t_phys, y=u_phys, mode="lines", name="Physics"))
-    fig.add_trace(go.Scatter(x=t_hyb, y=u_hyb, mode="lines", name="Hybrid"))
+    fig.update_layout(
+        title="Physics vs Hybrid Digital Twin",
+        xaxis_title="Time",
+        yaxis_title="Displacement",
+        template="plotly_white"
+    )
 
     st.plotly_chart(fig, use_container_width=True)
 
+    # ---------------------------------
+    # Display Performance Metrics
+    # ---------------------------------
     st.subheader("Performance Metrics")
     st.write(f"RMSE: {rmse:.6f}")
-    st.write(f"Physics Runtime: {phys_time:.4f} sec")
-    st.write(f"Hybrid Runtime: {hyb_time:.4f} sec")
-    st.write(f"Speed Ratio (Physics/Hybrid): {phys_time/hyb_time:.2f}")
+    st.write(f"Physics Runtime: {physics_time:.6f} sec")
+    st.write(f"Hybrid Runtime: {hybrid_time:.6f} sec")
+    st.write(f"Speed Ratio (Physics/Hybrid): {speed_ratio:.2f}")
