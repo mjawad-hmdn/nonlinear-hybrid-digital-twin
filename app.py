@@ -27,7 +27,7 @@ class NonlinearAccelerationTwin(nn.Module):
         return self.net(x)
 
 model = NonlinearAccelerationTwin()
-model.load_state_dict(torch.load("nonlinear_acc_model.pt"))
+model.load_state_dict(torch.load("nonlinear_acc_model_dropout.pt"))
 model.eval()
 
 with open("nonlinear_normalization.pkl", "rb") as f:
